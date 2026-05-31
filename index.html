@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FloodSense — Intelligent Flood Risk Prediction</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #020c18;
+      --surface: #041628;
+      --card: #06202e;
+      --border: rgba(0,180,255,0.12);
+      --accent: #00b4ff;
+      --accent2: #0066ff;
+      --danger: #ff4444;
+      --warn: #ff9900;
+      --ok: #00e676;
+      --text: #e8f4ff;
+      --muted: #5a8aaa;
+      --font-head: 'Syne', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── animated background ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 10%, rgba(0,102,255,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(0,180,255,0.08) 0%, transparent 55%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── wave lines decoration ── */
+    .waves-bg {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 220px;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.18;
+    }
+    .waves-bg svg { width: 100%; height: 100%; }
+
+    /* ── layout ── */
+    .page { position: relative; z-index: 1; max-width: 980px; margin: 0 auto; padding: 0 24px 80px; }
+
+    /* ── header ── */
+    header {
+      padding: 52px 0 36px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .logo-row { display: flex; align-items: center; gap: 14px; }
+    .logo-icon {
+      width: 48px; height: 48px;
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 0 24px rgba(0,180,255,0.35);
+    }
+    .logo-text { font-family: var(--font-head); font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+    .logo-text span { color: var(--accent); }
+    .badge {
+      font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase;
+      background: rgba(0,180,255,0.1); border: 1px solid rgba(0,180,255,0.25);
+      color: var(--accent); padding: 5px 12px; border-radius: 20px;
+      margin-top: 6px;
+    }
+    .hero-text h1 {
+      font-family: var(--font-head);
+      font-size: clamp(28px, 4vw, 44px);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -1px;
+      margin-bottom: 10px;
+    }
+    .hero-text h1 em { font-style: normal; color: var(--accent); }
+    .hero-text p { color: var(--muted); font-size: 15px; max-width: 480px; line-height: 1.6; }
+
+    /* ── section title ── */
+    .section-label {
+      font-family: var(--font-head);
+      font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 18px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* ── input grid ── */
+    .inputs-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      margin-bottom: 24px;
+      backdrop-filter: blur(10px);
+    }
+    .inputs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .field {
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .field label {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.8px;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .field-inner {
+      position: relative;
+    }
+    .field input {
+      width: 100%;
+      background: rgba(0,180,255,0.04);
+      border: 1px solid rgba(0,180,255,0.15);
+      border-radius: 10px;
+      padding: 11px 44px 11px 14px;
+      font-family: var(--font-body);
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text);
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+    .field input:focus {
+      border-color: var(--accent);
+      background: rgba(0,180,255,0.08);
+      box-shadow: 0 0 0 3px rgba(0,180,255,0.12);
+    }
+    .field input:hover:not(:focus) { border-color: rgba(0,180,255,0.3); }
+    .field-unit {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      font-size: 11px; color: var(--muted); font-weight: 600; pointer-events: none;
+    }
+
+    /* ── range slider ── */
+    .slider-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+    input[type=range] {
+      flex: 1; height: 3px; border-radius: 2px;
+      -webkit-appearance: none; appearance: none;
+      background: linear-gradient(to right, var(--accent) 50%, rgba(0,180,255,0.15) 50%);
+      outline: none; cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 14px; height: 14px;
+      background: var(--accent); border-radius: 50%;
+      box-shadow: 0 0 8px rgba(0,180,255,0.5);
+    }
+    .slider-val {
+      font-size: 12px; font-weight: 700; color: var(--accent);
+      min-width: 24px; text-align: right;
+    }
+
+    /* ── predict button ── */
+    .btn-wrap { text-align: center; margin: 8px 0 0; }
+    .predict-btn {
+      position: relative; overflow: hidden;
+      font-family: var(--font-head);
+      font-size: 15px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent2) 0%, var(--accent) 100%);
+      border: none; border-radius: 14px;
+      padding: 18px 56px;
+      cursor: pointer;
+      box-shadow: 0 4px 32px rgba(0,102,255,0.4);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .predict-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 40px rgba(0,102,255,0.55); }
+    .predict-btn:active { transform: translateY(0); }
+    .predict-btn::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .predict-btn:hover::before { opacity: 1; }
+    .btn-loader {
+      display: none; width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white; border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── result card ── */
+    #result {
+      display: none;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px;
+      margin-top: 24px;
+      animation: fadeUp 0.4s ease;
+      position: relative; overflow: hidden;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    #result::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: var(--result-color, var(--accent));
+      transition: background 0.4s;
+    }
+    .result-inner { display: flex; align-items: center; gap: 32px; flex-wrap: wrap; }
+    .result-gauge {
+      flex-shrink: 0;
+      width: 140px; height: 140px; position: relative;
+    }
+    .gauge-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .gauge-bg { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 10; }
+    .gauge-fill {
+      fill: none; stroke-width: 10; stroke-linecap: round;
+      stroke-dasharray: 326; stroke-dashoffset: 326;
+      transition: stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1), stroke 0.4s;
+    }
+    .gauge-center {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .gauge-pct {
+      font-family: var(--font-head); font-size: 28px; font-weight: 800;
+      color: var(--text); line-height: 1;
+    }
+    .gauge-label { font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
+    .result-info { flex: 1; min-width: 200px; }
+    .result-risk {
+      font-family: var(--font-head); font-size: 32px; font-weight: 800;
+      letter-spacing: -0.5px; margin-bottom: 8px;
+      transition: color 0.4s;
+    }
+    .result-desc { color: var(--muted); font-size: 14px; line-height: 1.6; margin-bottom: 16px; }
+    .risk-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+    .pill {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+      padding: 5px 12px; border-radius: 20px;
+      border: 1px solid; opacity: 0.4; transition: opacity 0.3s;
+    }
+    .pill.active { opacity: 1; }
+    .pill-low    { color: var(--ok);     border-color: var(--ok);     background: rgba(0,230,118,0.08); }
+    .pill-medium { color: #ffcc00;       border-color: #ffcc00;       background: rgba(255,204,0,0.08); }
+    .pill-high   { color: var(--warn);   border-color: var(--warn);   background: rgba(255,153,0,0.08); }
+    .pill-critical { color: var(--danger); border-color: var(--danger); background: rgba(255,68,68,0.08); }
+
+    /* ── info strip ── */
+    .info-strip {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+      margin-top: 24px;
+    }
+    .info-tile {
+      background: rgba(0,180,255,0.04); border: 1px solid var(--border);
+      border-radius: 12px; padding: 16px;
+      text-align: center;
+    }
+    .info-tile .val { font-family: var(--font-head); font-size: 22px; font-weight: 700; color: var(--accent); }
+    .info-tile .lbl { font-size: 11px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.8px; }
+
+    /* ── footer ── */
+    footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 48px; opacity: 0.6; }
+
+    /* ── responsive ── */
+    @media (max-width: 600px) {
+      .inputs-grid { grid-template-columns: 1fr 1fr; }
+      header { padding: 32px 0 24px; }
+      .result-inner { flex-direction: column; align-items: flex-start; gap: 20px; }
+      .info-strip { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="waves-bg">
+  <svg viewBox="0 0 1440 220" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0,120 C240,60 480,180 720,120 C960,60 1200,180 1440,120 L1440,220 L0,220 Z" fill="rgba(0,100,255,0.6)"/>
+    <path d="M0,160 C360,100 720,200 1080,140 C1260,110 1380,170 1440,155 L1440,220 L0,220 Z" fill="rgba(0,180,255,0.4)"/>
+  </svg>
+</div>
+
+<div class="page">
+
+  <header>
+    <div>
+      <div class="logo-row">
+        <div class="logo-icon">🌊</div>
+        <div class="logo-text">Flood<span>Sense</span></div>
+      </div>
+      <div class="badge">AI-Powered Risk Assessment</div>
+    </div>
+    <div class="hero-text">
+      <h1>Predict Flood Risk<br><em>Before It Happens</em></h1>
+      <p>Enter environmental and infrastructure factors to get an instant ML-powered flood probability assessment for your region.</p>
+    </div>
+  </header>
+
+  <div class="inputs-card">
+    <div class="section-label">Environmental & Infrastructure Factors</div>
+    <div class="inputs-grid" id="inputs-grid"></div>
+  </div>
+
+  <div class="btn-wrap">
+    <button class="predict-btn" onclick="predict()" id="predict-btn">
+      <span id="btn-text">⚡ Analyze Flood Risk</span>
+      <div class="btn-loader" id="btn-loader"></div>
+    </button>
+  </div>
+
+  <div id="result">
+    <div class="section-label">Risk Assessment Result</div>
+    <div class="result-inner">
+      <div class="result-gauge">
+        <svg class="gauge-svg" viewBox="0 0 120 120">
+          <circle class="gauge-bg" cx="60" cy="60" r="52"/>
+          <circle class="gauge-fill" id="gauge-fill" cx="60" cy="60" r="52"/>
+        </svg>
+        <div class="gauge-center">
+          <div class="gauge-pct" id="gauge-pct">0%</div>
+          <div class="gauge-label">Probability</div>
+        </div>
+      </div>
+      <div class="result-info">
+        <div class="result-risk" id="result-risk">—</div>
+        <div class="result-desc" id="result-desc">—</div>
+        <div class="risk-pills">
+          <div class="pill pill-low"      id="pill-low">Low</div>
+          <div class="pill pill-medium"   id="pill-medium">Medium</div>
+          <div class="pill pill-high"     id="pill-high">High</div>
+          <div class="pill pill-critical" id="pill-critical">Critical</div>
+        </div>
+      </div>
+    </div>
+    <div class="info-strip" id="info-strip" style="display:none">
+      <div class="info-tile"><div class="val" id="tile-pct">—</div><div class="lbl">Flood Probability</div></div>
+      <div class="info-tile"><div class="val" id="tile-level">—</div><div class="lbl">Risk Level</div></div>
+      <div class="info-tile"><div class="val" id="tile-action">—</div><div class="lbl">Recommended Action</div></div>
+    </div>
+  </div>
+
+  <footer>FloodSense ML · Powered by XGBoost · Built with Flask</footer>
+</div>
+
+<script>
+const FEATURES = [
+  'MonsoonIntensity','TopographyDrainage','RiverManagement',
+  'Deforestation','Urbanization','ClimateChange','DamsQuality',
+  'Siltation','AgriculturalPractices','Encroachments',
+  'IneffectiveDisasterPreparedness','DrainageSystems',
+  'CoastalVulnerability','Landslides','Watersheds',
+  'DeterioratingInfrastructure','PopulationScore','WetlandLoss',
+  'InadequatePlanning','PoliticalFactors'
+];
+
+const LABELS = {
+  MonsoonIntensity: 'Monsoon Intensity',
+  TopographyDrainage: 'Topography Drainage',
+  RiverManagement: 'River Management',
+  Deforestation: 'Deforestation',
+  Urbanization: 'Urbanization',
+  ClimateChange: 'Climate Change',
+  DamsQuality: 'Dams Quality',
+  Siltation: 'Siltation',
+  AgriculturalPractices: 'Agricultural Practices',
+  Encroachments: 'Encroachments',
+  IneffectiveDisasterPreparedness: 'Disaster Preparedness',
+  DrainageSystems: 'Drainage Systems',
+  CoastalVulnerability: 'Coastal Vulnerability',
+  Landslides: 'Landslides',
+  Watersheds: 'Watersheds',
+  DeterioratingInfrastructure: 'Infrastructure Decay',
+  PopulationScore: 'Population Score',
+  WetlandLoss: 'Wetland Loss',
+  InadequatePlanning: 'Inadequate Planning',
+  PoliticalFactors: 'Political Factors'
+};
+
+const DESCS = {
+  Low:      'Minimal flood risk detected. Conditions are stable. Continue routine monitoring of drainage and weather patterns.',
+  Medium:   'Moderate flood risk identified. Review drainage capacity and ensure early-warning systems are active.',
+  High:     'High flood risk detected! Activate flood preparedness protocols and alert relevant authorities immediately.',
+  Critical: 'CRITICAL flood risk! Initiate emergency response, evacuate vulnerable areas, and deploy all flood control resources now.'
+};
+
+const ACTIONS = { Low: 'Monitor', Medium: 'Prepare', High: 'Alert', Critical: 'Evacuate' };
+const COLORS  = { Low: '#00e676', Medium: '#ffcc00', High: '#ff9900', Critical: '#ff4444' };
+
+// Build input fields
+const grid = document.getElementById('inputs-grid');
+FEATURES.forEach(f => {
+  grid.innerHTML += `
+  <div class="field">
+    <label>${LABELS[f]}</label>
+    <div class="field-inner">
+      <input type="number" id="${f}" min="0" max="10" step="0.1" value="5"
+             oninput="syncSlider('${f}', this.value)">
+      <span class="field-unit">/10</span>
+    </div>
+    <div class="slider-row">
+      <input type="range" id="${f}_range" min="0" max="10" step="0.1" value="5"
+             oninput="syncInput('${f}', this.value)">
+      <span class="slider-val" id="${f}_val">5</span>
+    </div>
+  </div>`;
+});
+
+function syncSlider(f, v) {
+  const val = Math.min(10, Math.max(0, parseFloat(v) || 0));
+  document.getElementById(f+'_range').value = val;
+  document.getElementById(f+'_val').textContent = val;
+  updateSliderBg(f, val);
+}
+function syncInput(f, v) {
+  document.getElementById(f).value = v;
+  document.getElementById(f+'_val').textContent = parseFloat(v).toFixed(1);
+  updateSliderBg(f, v);
+}
+function updateSliderBg(f, v) {
+  const pct = (v / 10) * 100;
+  const el  = document.getElementById(f+'_range');
+  el.style.background = `linear-gradient(to right, var(--accent) ${pct}%, rgba(0,180,255,0.15) ${pct}%)`;
+}
+
+// Init sliders
+FEATURES.forEach(f => updateSliderBg(f, 5));
+
+async function predict() {
+  const btn    = document.getElementById('predict-btn');
+  const btnTxt = document.getElementById('btn-text');
+  const loader = document.getElementById('btn-loader');
+
+  btn.disabled = true;
+  btnTxt.style.display = 'none';
+  loader.style.display = 'block';
+
+  const data = {};
+  FEATURES.forEach(f => { data[f] = document.getElementById(f).value; });
+
+  try {
+    const res    = await fetch('/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const result = await res.json();
+    showResult(result);
+  } catch(e) {
+    alert('Could not connect to the server. Make sure app.py is running.');
+  } finally {
+    btn.disabled = false;
+    btnTxt.style.display = '';
+    loader.style.display = 'none';
+  }
+}
+
+function showResult(r) {
+  const pct   = r.probability;
+  const risk  = r.risk.replace(' Risk','').replace(' risk','').trim();
+  const color = COLORS[risk] || '#00b4ff';
+
+  document.getElementById('result').style.display = 'block';
+  document.getElementById('result').style.setProperty('--result-color', color);
+  document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  // Gauge
+  const circumference = 326;
+  const offset = circumference - (pct / 100) * circumference;
+  const fill = document.getElementById('gauge-fill');
+  fill.style.stroke = color;
+  fill.style.strokeDashoffset = offset;
+
+  // Animate counter
+  let start = 0;
+  const target = pct;
+  const step = () => {
+    start = Math.min(start + 1.2, target);
+    document.getElementById('gauge-pct').textContent = Math.round(start) + '%';
+    if (start < target) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+
+  // Risk text
+  document.getElementById('result-risk').textContent = risk + ' Risk';
+  document.getElementById('result-risk').style.color = color;
+  document.getElementById('result-desc').textContent = DESCS[risk] || '';
+
+  // Pills
+  ['low','medium','high','critical'].forEach(p => {
+    document.getElementById('pill-'+p).classList.remove('active');
+  });
+  document.getElementById('pill-'+risk.toLowerCase()).classList.add('active');
+
+  // Info strip
+  const strip = document.getElementById('info-strip');
+  strip.style.display = 'grid';
+  document.getElementById('tile-pct').textContent    = pct + '%';
+  document.getElementById('tile-pct').style.color    = color;
+  document.getElementById('tile-level').textContent  = risk;
+  document.getElementById('tile-level').style.color  = color;
+  document.getElementById('tile-action').textContent = ACTIONS[risk] || '—';
+  document.getElementById('tile-action').style.color = color;
+}
+</script>
+</body>
+</html>
